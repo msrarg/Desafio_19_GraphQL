@@ -1,109 +1,90 @@
+const http = require("http");
+const express = require("express");
+const { graphqlHTTP } = require ('express-graphql');
 
-const express = require('express');
+const { ApolloServer } = require("apollo-server-express");
+const {
+  ApolloServerPluginDrainHttpServer,
+  ApolloServerPluginLandingPageLocalDefault,
+} = require("apollo-server-core");
 
-import http from "http";
-
-import path from'path';
-
-const typeDefs  = require('./typeDefs');
-const resolvers = require('./resolvers');
-const mongoConnection = require('./db');
+const typeDefs  = require("./typeDefs");
+const resolvers = require("./resolvers");
+const mongoConnection = require("./db");
 
 class Server {
+  constructor() {
+    this.app = express();
+    this.port = process.env.PORT || 3000;
+    this.httpServer = http.Server(this.app);
+    this.apolloServer;
 
-    constructor() {
-        this.app  = express();
-        this.server = http.Server(this.app);
+    this.conectarDB();
+    this.middlewares();
+    this.startApolloServer();
+    this.routes();
+  }
 
-        this.conectarDB();
-        this.middlewares();
-        this.routes();
+  async conectarDB() {
+    if (process.env.PERSISTENCE == "MONGO") {
+      await mongoConnection();
     }
+  }
 
-    async conectarDB(){
-        if (process.env.PERSISTENCE == 'MONGO'){
-            await mongoConnection();
-        }
-    }
+  middlewares() {
+    this.app.use(express.json());
+    this.app.use(express.static("public"));
+  }
 
-    middlewares() {
-        this.app.use( express.json() );
-        this.app.use( express.static('public') );
-        this.app.use(fileUpload({
-            useTempFiles : true,
-            tempFileDir : '/tmp/',
-            createParentPath:true
-        }));
+  routes() {
+    /*
+    this.app.use("/graphql",
+      graphqlHTTP({
+        schema:    typeDefs,
+        rootValue: resolvers,
+        graphiql:  true,
+      })
+    );
+    */
+  }
 
-        this.app.use(cookieParser());
-        this.app.use(baseSession);
-        initializePassport();
-        this.app.use(passport.initialize());
-        this.app.use(passport.session());
-        this.app.engine(
-            "hbs",
-            engine({
-                extname: ".hbs",
-                defaultLayout: "layout.hbs",
-                layoutsDir:  path.join(__dirname,'../views/layouts/'),
-                partialsDir: path.join(__dirname,'../views/partials/'),
-                runtimeOptions: {
-                    allowProtoPropertiesByDefault: true,
-                    allowProtoMethodsByDefault: true,
-                }
-            })
-          );
-          
-        this.app.set("views", "./views");
-        this.app.set("view engine", "hbs");
-        this.app.set("logger", this.logger);
-    }
+  async startApolloServer() {
+    // Our httpServer handles incoming requests to our Express app.
+    // Below, we tell Apollo Server to "drain" this httpServer,
+    // enabling our servers to shut down gracefully.
+    this.apolloServer = new ApolloServer({
+      typeDefs: typeDefs,
+      resolvers: resolvers,
+      csrfPrevention: true,
+      cache: "bounded",
+      plugins: [
+        ApolloServerPluginDrainHttpServer({ httpServer: this.httpServer }),
+        ApolloServerPluginLandingPageLocalDefault({ embed: true }),
+      ],
+    });
+  }
 
-    routes() {
-        this.app.use( this.paths.users,     routerUsers );
-        this.app.use( this.paths.productos, routerProductos);
-        this.app.use( this.paths.carrito,   routerCarrito );
-        this.app.use( this.paths.shop,      routerShop );
+  async listen() {
+    await this.apolloServer.start();
+    console.log(`Apollo Server is ready.`);
 
+    // Mount Apollo middleware here.
+    this.apolloServer.applyMiddleware({ app: this.app });
 
-        this.app.use('*', (req, res) => {
-            const path = req.originalUrl;
-            const metodo = req.method;
-            const descripcion = `ruta ${path} método ${metodo} no implementada`
-            this.logger.warn(descripcion)
-            res.status(401).json({
-                error: -2,
-                descripcion
-            });
-        });
-    }
+    await new Promise((resolve) =>
+      this.app.listen({ port: this.port }, resolve)
+    );
+    console.log(
+      `Server ready at http://localhost:${this.port}${this.apolloServer.graphqlPath}`
+    );
 
-    start() {
-        if (this.modo !== 'fork'){
-            if (cluster.isPrimary) {
-                this.logger.info(`Proceso principal ID:(${process.pid})`)
-                for(let i = 0; i <  core.cpus().length; i++) {
-                    cluster.fork();
-                }
-            
-                cluster.on('exit', (worker) => {
-                    cluster.fork();
-                });
-            
-            } else {
-                this.listen();
-            }
-        } else {
-            this.listen();
-        }
-    }
-
-    listen() {
-        this.server.listen( this.port, () => {
-            this.logger.info(`Server Up on port: ${this.port}`)
-        });
-    }
-
+    // this.app.listen(this.port, () => {
+    //   console.log(`Server Up on port: ${this.port}`);
+    // });
+    // this.app.on("error", (error) =>
+    //   console.log(`Error en el servidor: ${error}`)
+    // );
+  }
 }
 
-export default Server;
+module.exports = { Server };

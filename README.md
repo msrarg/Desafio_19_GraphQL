@@ -1,13 +1,34 @@
 ### Desafío: Reformar para usar GraphQL
 
-Utilicé Apollo para usar graphql
+GraphQL con Apollo
 
 Puerto: 8080
-
 ### Interfaz gráfica:
 http://localhost:8080/graphql
-
+### Insertar nuevo producto:
+En la ventana "operation" de Apollo
+```bash
+mutation Mutation($name: String, $description: String, $code: String, $price: Float) {
+  createProduct(name: $name, description: $description, code: $code, price: $price) {
+    id
+    name
+    description
+    code
+    price
+  }
+}
+```
+En la ventana "Variables" de Apollo
+```bash
+{
+  "name": "Teclado Keychrone",
+  "description": "Keychrone M10",
+  "code": "KYM10",
+  "price": 40000
+}
+```
 ### Obtener todos los productos:
+En la ventana "operation" de Apollo
 ```bash
 query Query {
   getAll {
@@ -20,7 +41,7 @@ query Query {
 }
 ```
 ### Obtener por id:
-En ventana "operation"
+En la ventana "operation" de Apollo
 ```bash
 query GetById($getByIdId: ID) {
   getById(id: $getByIdId) {
@@ -32,38 +53,14 @@ query GetById($getByIdId: ID) {
   }
 }
 ```
-En ventana "Variables"
+En la ventana "Variables" de Apollo
 ```bash
 {
-  "getByIdId": "cambiarporidexistente"
-}
-```
-### Insertar nuevo producto:
-
-En ventana "operation"
-```bash
-mutation Mutation($name: String, $description: String, $code: String, $price: Float) {
-  createProduct(name: $name, description: $description, code: $code, price: $price) {
-    id
-    name
-    description
-    code
-    price
-  }
-}
-```
-En ventana "Variables"
-```bash
-{
-  "name": "Teclado Keychrone",
-  "description": "Keychrone M10",
-  "code": "KYM10",
-  "price": 40000
+  "getByIdId": "cambiarPorIdExistenteEnMongoDB"
 }
 ```
 ### Modificar un producto:
-
-En ventana "operation"
+En la ventana "operation" de Apollo
 ```bash
 mutation UpdateProduct($updateProductId: ID, $description: String, $name: String, $code: String, $price: Float) {
   updateProduct(id: $updateProductId, description: $description, name: $name, code: $code, price: $price) {
@@ -75,19 +72,18 @@ mutation UpdateProduct($updateProductId: ID, $description: String, $name: String
   }
 }
 ```
-En ventana "Variables"
+En la ventana "Variables" de Apollo
 ```bash
 {
-  "updateProductId": "cambiarporidexistente",
-  "description": "Monit FHD",
-  "name": "Monit LG 24''",
+  "updateProductId": "cambiarPorIdExistenteEnMongoDB",
+  "description": "Monitor FHD",
+  "name": "Monitor LG 24''",
   "code": "MLGFHD244",
   "price": 55000
 }
 ```
 ### Eliminar un producto
-
-En ventana "operation"
+En la ventana "operation" de Apollo
 ```bash
 mutation DeleteProduct($deleteProductId: ID!) {
   deleteProduct(id: $deleteProductId) {
@@ -99,9 +95,9 @@ mutation DeleteProduct($deleteProductId: ID!) {
   }
 }
 ```
-En ventana "Variables"
+En la ventana "Variables" de Apollo
 ```bash
 {
-  "deleteProductId": "cambiarporidexistente"
+  "deleteProductId": "cambiarPorIdExistenteEnMongoDB"
 }
 ```
